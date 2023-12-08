@@ -1,0 +1,41 @@
+name: Update Events
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs at midnight every day
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  update-events:
+    runs-on: ubuntu-latest
+    if: github.repository == 'saucy-tech/plebnet-website' # Only run on this repo, prevents forks from running
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Update Script
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          MY_GITHUB_PAT: ${{ secrets.MY_GITHUB_PAT }}
+          REPO_NAME: ${{ secrets.REPO_NAME }}
+
+        run: python src/utils/update-events.py
+
+      - name: Commit and Push if Changes
+        run: |
+          git config --global user.name 'Your Name'
+          git config --global user.email 'your-email@example.com'
+          git add public/data/events.json
+          git commit -m "Automatically update events" || exit 0
+          git push
